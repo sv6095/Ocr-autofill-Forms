@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Extraction Results - OCR Demo{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2 class="card-title">Extraction Results</h2>
+    <p style="margin-bottom: 1.5rem; color: var(--text-secondary);">
+        Review and edit the extracted fields. You can manually correct any OCR errors before verification.
+    </p>
+</div>
+
+<div id="results-container">
+    <!-- Results will be loaded here by extraction.js -->
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/extraction.js"></script>
+{% endblock %}
+

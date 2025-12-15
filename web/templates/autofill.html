@@ -1,0 +1,627 @@
+{% extends "base.html" %}
+
+{% block title %}Auto-Fill Form - OCR Demo{% endblock %}
+
+{% block extra_css %}
+<style>
+    .autofill-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        margin-top: 2rem;
+    }
+
+    @media (max-width: 1024px) {
+        .autofill-container {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .form-section {
+        background: var(--card-bg);
+        border-radius: 8px;
+        padding: 2rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .upload-section {
+        background: var(--card-bg);
+        border-radius: 8px;
+        padding: 2rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1.5rem;
+        margin-top: 1.5rem;
+    }
+
+    .form-field {
+        position: relative;
+    }
+
+    .form-field label {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: var(--text-primary);
+    }
+
+    .form-field input,
+    .form-field select,
+    .form-field textarea {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px solid var(--border-color);
+        border-radius: 6px;
+        font-size: 1rem;
+        transition: all 0.2s;
+    }
+
+    .form-field input:focus,
+    .form-field select:focus,
+    .form-field textarea:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .form-field input.auto-filled {
+        background: #eff6ff;
+        border-color: var(--primary-color);
+    }
+
+    .form-field input.verified {
+        background: #d1fae5;
+        border-color: var(--success-color);
+    }
+
+    .form-field input.warning {
+        background: #fef3c7;
+        border-color: var(--warning-color);
+    }
+
+    .form-field input.error {
+        background: #fee2e2;
+        border-color: var(--error-color);
+    }
+
+    .field-icon {
+        font-size: 1.2rem;
+    }
+
+    .auto-fill-badge {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        background: var(--primary-color);
+        color: white;
+        font-weight: 500;
+    }
+
+    .verification-panel {
+        background: var(--card-bg);
+        border-radius: 8px;
+        padding: 2rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        max-height: 600px;
+        overflow-y: auto;
+    }
+
+    .verification-item {
+        padding: 1rem;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        margin-bottom: 1rem;
+        background: var(--bg-color);
+    }
+
+    .verification-item.match {
+        border-left: 4px solid var(--success-color);
+    }
+
+    .verification-item.partial {
+        border-left: 4px solid var(--warning-color);
+    }
+
+    .verification-item.mismatch {
+        border-left: 4px solid var(--error-color);
+    }
+
+    .verification-item.not-found {
+        border-left: 4px solid var(--secondary-color);
+    }
+
+    .verification-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+
+    .verification-field-name {
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .verification-values {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin-top: 0.5rem;
+    }
+
+    .verification-value {
+        padding: 0.5rem;
+        background: white;
+        border-radius: 4px;
+        border: 1px solid var(--border-color);
+    }
+
+    .verification-label {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        margin-bottom: 0.25rem;
+    }
+
+    .verification-text {
+        font-weight: 500;
+        color: var(--text-primary);
+    }
+
+    .similarity-score {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        margin-top: 0.5rem;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+        flex-wrap: wrap;
+    }
+
+    .btn-group {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .document-preview-container {
+        margin-top: 1rem;
+        text-align: center;
+    }
+
+    .document-preview {
+        max-width: 100%;
+        max-height: 400px;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        margin: 1rem 0;
+    }
+
+    .extracted-text-panel {
+        background: var(--bg-color);
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        padding: 1rem;
+        margin-top: 1rem;
+        max-height: 300px;
+        overflow-y: auto;
+        font-family: 'Courier New', monospace;
+        font-size: 0.875rem;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .stat-card {
+        background: var(--bg-color);
+        padding: 1rem;
+        border-radius: 6px;
+        text-align: center;
+    }
+
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: var(--primary-color);
+    }
+
+    .stat-label {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        margin-top: 0.25rem;
+    }
+
+    .progress-bar {
+        width: 100%;
+        height: 8px;
+        background: var(--border-color);
+        border-radius: 4px;
+        overflow: hidden;
+        margin-top: 1rem;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: var(--primary-color);
+        transition: width 0.3s;
+    }
+
+    .tabs {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+        border-bottom: 2px solid var(--border-color);
+    }
+
+    .tab {
+        padding: 0.75rem 1.5rem;
+        background: none;
+        border: none;
+        border-bottom: 3px solid transparent;
+        cursor: pointer;
+        font-size: 1rem;
+        color: var(--text-secondary);
+        transition: all 0.2s;
+    }
+
+    .tab.active {
+        color: var(--primary-color);
+        border-bottom-color: var(--primary-color);
+        font-weight: 600;
+    }
+
+    .tab-content {
+        display: none;
+    }
+
+    .tab-content.active {
+        display: block;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="upload-section">
+    <h2 class="card-title">📄 Document Upload & Auto-Fill</h2>
+    <p style="margin-bottom: 1.5rem; color: var(--text-secondary);">
+        Upload a scanned document or image to automatically extract and fill form fields. 
+        Supports printed forms, ID cards, handwritten notes, and more.
+    </p>
+    
+    <div class="language-selector">
+        <button class="lang-btn active" data-lang="eng">English</button>
+        <button class="lang-btn" data-lang="hin">Hindi (हिंदी)</button>
+        <button class="lang-btn" data-lang="ara">Arabic (العربية)</button>
+    </div>
+    
+    <div id="upload-area" class="upload-area">
+        <div class="upload-icon">📤</div>
+        <h3>Click to upload or drag and drop</h3>
+        <p style="color: var(--text-secondary); margin-top: 0.5rem;">
+            PDF, JPEG, PNG (Max 50MB)
+        </p>
+        <input type="file" id="file-input" class="file-input" accept=".pdf,.jpg,.jpeg,.png">
+    </div>
+    
+    <div id="file-info" style="margin-top: 1rem;"></div>
+    
+    <div id="document-preview-container" class="document-preview-container" style="display: none;">
+        <img id="document-preview" class="document-preview" alt="Document preview">
+    </div>
+    
+    <div class="action-buttons">
+        <button id="extract-btn" class="btn btn-primary" disabled>
+            <span id="extract-btn-text">Extract & Auto-Fill</span>
+            <span id="extract-loading" class="loading" style="display: none; margin-left: 0.5rem;"></span>
+        </button>
+        <button id="verify-btn" class="btn btn-success" disabled>
+            <span id="verify-btn-text">Verify Data</span>
+            <span id="verify-loading" class="loading" style="display: none; margin-left: 0.5rem;"></span>
+        </button>
+        <button id="clear-btn" class="btn btn-secondary">Clear Form</button>
+    </div>
+    
+    <div id="progress-container" style="display: none;">
+        <div class="progress-bar">
+            <div id="progress-fill" class="progress-fill" style="width: 0%;"></div>
+        </div>
+        <p id="progress-text" style="text-align: center; margin-top: 0.5rem; color: var(--text-secondary);"></p>
+    </div>
+</div>
+
+<div class="autofill-container">
+    <div class="form-section">
+        <h2 class="card-title">📝 Form Fields</h2>
+        <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+            Form will be automatically filled from the uploaded document. You can edit any field manually.
+        </p>
+        
+        <form id="autofill-form">
+            <div class="form-grid">
+                <!-- Field 1: Name -->
+                <div class="form-field">
+                    <label>
+                        <span class="field-icon">👤</span>
+                        <span>Full Name</span>
+                    </label>
+                    <input type="text" id="name" name="name" placeholder="Enter full name">
+                </div>
+
+                <!-- Field 2: Address -->
+                <div class="form-field">
+                    <label>
+                        <span class="field-icon">📍</span>
+                        <span>Address</span>
+                    </label>
+                    <textarea id="address" name="address" rows="3" placeholder="Enter address"></textarea>
+                </div>
+
+                <!-- Field 3: Phone Number -->
+                <div class="form-field">
+                    <label>
+                        <span class="field-icon">📞</span>
+                        <span>Phone Number</span>
+                    </label>
+                    <input type="tel" id="phone" name="phone" placeholder="Enter phone number">
+                </div>
+
+                <!-- Field 4: Email -->
+                <div class="form-field">
+                    <label>
+                        <span class="field-icon">✉️</span>
+                        <span>Email</span>
+                    </label>
+                    <input type="email" id="email" name="email" placeholder="Enter email address">
+                </div>
+
+                <!-- Field 5: Date of Birth -->
+                <div class="form-field">
+                    <label>
+                        <span class="field-icon">🎂</span>
+                        <span>Date of Birth</span>
+                    </label>
+                    <input type="text" id="date_of_birth" name="date_of_birth" placeholder="DD/MM/YYYY">
+                </div>
+
+                <!-- Field 6: ID Number -->
+                <div class="form-field">
+                    <label>
+                        <span class="field-icon">🆔</span>
+                        <span>ID Number</span>
+                    </label>
+                    <input type="text" id="id_number" name="id_number" placeholder="Enter ID number">
+                </div>
+
+                <!-- Field 7: Aadhaar Number -->
+                <div class="form-field">
+                    <label>
+                        <span class="field-icon">🆔</span>
+                        <span>Aadhaar Number</span>
+                    </label>
+                    <input type="text" id="aadhaar_number" name="aadhaar_number" placeholder="Enter Aadhaar number">
+                </div>
+
+                <!-- Field 8: PAN Number -->
+                <div class="form-field">
+                    <label>
+                        <span class="field-icon">💳</span>
+                        <span>PAN Number</span>
+                    </label>
+                    <input type="text" id="pan_number" name="pan_number" placeholder="Enter PAN number">
+                </div>
+
+                <!-- Field 9: Passport Number -->
+                <div class="form-field">
+                    <label>
+                        <span class="field-icon">🛂</span>
+                        <span>Passport Number</span>
+                    </label>
+                    <input type="text" id="passport_number" name="passport_number" placeholder="Enter passport number">
+                </div>
+
+                <!-- Field 10: License Number -->
+                <div class="form-field">
+                    <label>
+                        <span class="field-icon">🚗</span>
+                        <span>License Number</span>
+                    </label>
+                    <input type="text" id="license_number" name="license_number" placeholder="Enter license number">
+                </div>
+
+                <!-- Field 11: Gender -->
+                <div class="form-field">
+                    <label>
+                        <span class="field-icon">⚧️</span>
+                        <span>Gender</span>
+                    </label>
+                    <select id="gender" name="gender">
+                        <option value="">Select gender</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+
+                <!-- Field 12: Nationality -->
+                <div class="form-field">
+                    <label>
+                        <span class="field-icon">🌍</span>
+                        <span>Nationality</span>
+                    </label>
+                    <input type="text" id="nationality" name="nationality" placeholder="Enter nationality">
+                </div>
+
+                <!-- Field 13: Occupation -->
+                <div class="form-field">
+                    <label>
+                        <span class="field-icon">💼</span>
+                        <span>Occupation</span>
+                    </label>
+                    <input type="text" id="occupation" name="occupation" placeholder="Enter occupation">
+                </div>
+
+                <!-- Field 14: City -->
+                <div class="form-field">
+                    <label>
+                        <span class="field-icon">🏙️</span>
+                        <span>City</span>
+                    </label>
+                    <input type="text" id="city" name="city" placeholder="Enter city">
+                </div>
+
+                <!-- Field 15: State -->
+                <div class="form-field">
+                    <label>
+                        <span class="field-icon">🗺️</span>
+                        <span>State</span>
+                    </label>
+                    <input type="text" id="state" name="state" placeholder="Enter state">
+                </div>
+
+                <!-- Field 16: Zip Code -->
+                <div class="form-field">
+                    <label>
+                        <span class="field-icon">📮</span>
+                        <span>Zip Code</span>
+                    </label>
+                    <input type="text" id="zip_code" name="zip_code" placeholder="Enter zip code">
+                </div>
+
+                <!-- Field 17: Emergency Contact -->
+                <div class="form-field">
+                    <label>
+                        <span class="field-icon">🚨</span>
+                        <span>Emergency Contact</span>
+                    </label>
+                    <input type="text" id="emergency_contact" name="emergency_contact" placeholder="Enter emergency contact">
+                </div>
+
+                <!-- Field 18: Blood Group -->
+                <div class="form-field">
+                    <label>
+                        <span class="field-icon">🩸</span>
+                        <span>Blood Group</span>
+                    </label>
+                    <select id="blood_group" name="blood_group">
+                        <option value="">Select blood group</option>
+                        <option value="A+">A+</option>
+                        <option value="A-">A-</option>
+                        <option value="B+">B+</option>
+                        <option value="B-">B-</option>
+                        <option value="AB+">AB+</option>
+                        <option value="AB-">AB-</option>
+                        <option value="O+">O+</option>
+                        <option value="O-">O-</option>
+                    </select>
+                </div>
+
+                <!-- Field 19: Marital Status -->
+                <div class="form-field">
+                    <label>
+                        <span class="field-icon">💍</span>
+                        <span>Marital Status</span>
+                    </label>
+                    <select id="marital_status" name="marital_status">
+                        <option value="">Select marital status</option>
+                        <option value="Single">Single</option>
+                        <option value="Married">Married</option>
+                        <option value="Divorced">Divorced</option>
+                        <option value="Widowed">Widowed</option>
+                    </select>
+                </div>
+
+                <!-- Field 20: Father's Name -->
+                <div class="form-field">
+                    <label>
+                        <span class="field-icon">👨</span>
+                        <span>Father's Name</span>
+                    </label>
+                    <input type="text" id="father_name" name="father_name" placeholder="Enter father's name">
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div class="verification-section">
+        <div class="tabs">
+            <button class="tab active" data-tab="verification">Verification</button>
+            <button class="tab" data-tab="extracted-text">Extracted Text</button>
+        </div>
+
+        <div id="verification-tab" class="tab-content active">
+            <div class="verification-panel">
+                <h3 class="card-title">🔍 Verification Results</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                    Cross-check filled data with extracted document data.
+                </p>
+                
+                <div id="verification-stats" class="stats-grid" style="display: none;">
+                    <div class="stat-card">
+                        <div class="stat-value" id="match-count">0</div>
+                        <div class="stat-label">Matches</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="partial-count">0</div>
+                        <div class="stat-label">Partial</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="mismatch-count">0</div>
+                        <div class="stat-label">Mismatches</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="confidence-score">0%</div>
+                        <div class="stat-label">Confidence</div>
+                    </div>
+                </div>
+                
+                <div id="verification-results"></div>
+                
+                <div id="verification-empty" style="text-align: center; padding: 3rem; color: var(--text-secondary);">
+                    <p>Upload a document and click "Verify Data" to see verification results.</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="extracted-text-tab" class="tab-content">
+            <div class="verification-panel">
+                <h3 class="card-title">📄 Extracted Text</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                    Raw text extracted from the document.
+                </p>
+                <div id="extracted-text" class="extracted-text-panel" style="display: none;">
+                    <p style="color: var(--text-secondary);">No text extracted yet.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="loading-overlay" class="loading-overlay" style="display: none;">
+    <div class="loading-content">
+        <div class="loading" style="width: 40px; height: 40px; margin: 0 auto 1rem;"></div>
+        <p id="loading-message">Processing document...</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/autofill.js"></script>
+{% endblock %}
+

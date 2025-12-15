@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Document - OCR Demo{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2 class="card-title">Upload Document for OCR</h2>
+    <p style="margin-bottom: 1.5rem; color: var(--text-secondary);">
+        Upload a scanned PDF or image (JPEG, PNG) to extract text and fields.
+        Supports English, Hindi, and Arabic documents.
+    </p>
+    
+    <div class="language-selector">
+        <button class="lang-btn active" data-lang="eng">English</button>
+        <button class="lang-btn" data-lang="hin">Hindi (हिंदी)</button>
+        <button class="lang-btn" data-lang="ara">Arabic (العربية)</button>
+    </div>
+    
+    <div id="upload-area" class="upload-area">
+        <div class="upload-icon">📄</div>
+        <h3>Click to upload or drag and drop</h3>
+        <p style="color: var(--text-secondary); margin-top: 0.5rem;">
+            PDF, JPEG, or PNG (Max 50MB)
+        </p>
+        <input type="file" id="file-input" class="file-input" accept=".pdf,.jpg,.jpeg,.png">
+    </div>
+    
+    <div id="file-info"></div>
+    
+    <div style="margin-top: 1.5rem;">
+        <button id="upload-btn" class="btn btn-primary" disabled>Process Document</button>
+    </div>
+</div>
+
+<div class="card">
+    <h3 class="card-title">Supported Document Types</h3>
+    <ul style="list-style: none; padding: 0;">
+        <li style="padding: 0.5rem 0;">✓ ID Cards (Aadhaar, PAN, Passport, Driver's License)</li>
+        <li style="padding: 0.5rem 0;">✓ Forms (Application forms, Registration forms)</li>
+        <li style="padding: 0.5rem 0;">✓ Certificates (Degree, Diploma, Birth Certificate)</li>
+        <li style="padding: 0.5rem 0;">✓ Invoices and Receipts</li>
+    </ul>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/upload.js"></script>
+{% endblock %}
+

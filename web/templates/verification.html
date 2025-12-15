@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Verification - OCR Demo{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2 class="card-title">Data Verification</h2>
+    <p style="margin-bottom: 1.5rem; color: var(--text-secondary);">
+        Compare extracted values with submitted data and view confidence scores.
+    </p>
+</div>
+
+<div id="verification-container">
+    <!-- Verification form or results will be loaded here by verification.js -->
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/verification.js"></script>
+{% endblock %}
+
